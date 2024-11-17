@@ -66,3 +66,6 @@ axdma = { path = "modules/axdma" }
 
 [profile.release]
 lto = true
+
+[profile.dev]
+codegen-units = 1
