@@ -53,7 +53,7 @@ static_assertions = "1.1.0"
 spin = { version = "0.9" }
 lazy_static = { version = "1.5", features = ["spin_no_std"] }
 crate_interface = "0.1"
-linkme = "0.3"
+ctor_bare = "0.1"
 
 [build-dependencies]
 bindgen ={ version = "0.69" }

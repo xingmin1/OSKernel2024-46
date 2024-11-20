@@ -23,7 +23,6 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 use core::{alloc::Layout, fmt, ops::Deref};
-use linkme::distributed_slice;
 
 use lazyinit::LazyInit;
 
@@ -31,10 +30,6 @@ extern "C" {
     fn __start_axns_resource();
     fn __stop_axns_resource();
 }
-
-/// A distributed slice that contains all method to initialize user-defined resources.
-#[distributed_slice]
-pub static INIT_RESOURCE: [fn()];
 
 /// A namespace that contains all user-defined resources.
 ///

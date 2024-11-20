@@ -19,8 +19,8 @@ pub mod pipe;
 #[cfg(feature = "multitask")]
 pub mod pthread;
 
+#[ctor_bare::register_ctor]
 #[cfg(feature = "fd")]
-#[linkme::distributed_slice(axns::INIT_RESOURCE)]
 fn init_stdio() {
     use crate::imp::fd_ops::FD_TABLE;
     use alloc::sync::Arc;
