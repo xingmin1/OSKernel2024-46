@@ -117,7 +117,6 @@ dependencies = [
  "axsync",
  "axtask",
  "bindgen",
- "crate_interface",
  "ctor_bare",
  "flatten_objects",
  "lazy_static",
@@ -490,7 +489,6 @@ dependencies = [
  "axlog",
  "axmm",
  "axnet",
- "axns",
  "axtask",
  "chrono",
  "crate_interface",
@@ -732,18 +730,18 @@ checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
 
 [[package]]
 name = "ctor_bare"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d136495eea0dc68b0a4e23e94a2012b7a87934e09c9b684f79f3027c901c14bd"
+checksum = "ace93bf09b338be4a969737b537cf9d48017fda638bd0f604f249918531a4546"
 dependencies = [
  "ctor_bare_macros",
 ]
 
 [[package]]
 name = "ctor_bare_macros"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7762fc30ffde1b507138835d6d55006ce43efc80fdbf940bd1080cda9991611b"
+checksum = "00585e1458b28ccdde0704f17ec14930acd155b3996a0c8aec79e52a0e849318"
 dependencies = [
  "proc-macro2",
  "quote",

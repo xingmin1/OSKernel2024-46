@@ -38,6 +38,7 @@ pub fn new_kernel_aspace() -> AxResult<AddrSpace> {
     )?;
     for r in axhal::mem::memory_regions() {
         if r.size == 0 {
+            info!("Skip zero-size memory region: {:?}", r);
             continue;
         }
         aspace.map_linear(phys_to_virt(r.paddr), r.paddr, r.size, r.flags.into())?;

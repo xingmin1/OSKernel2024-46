@@ -17,12 +17,8 @@ pub type FileType = axfs_vfs::VfsNodeType;
 pub type DirEntry = axfs_vfs::VfsDirEntry;
 /// Alias of [`axfs_vfs::VfsNodeAttr`].
 pub type FileAttr = axfs_vfs::VfsNodeAttr;
-/// Alias of [`axfs_vfs::VfsNodeAttr`].
-pub type DirAttr = axfs_vfs::VfsNodeAttr;
 /// Alias of [`axfs_vfs::VfsNodePerm`].
 pub type FilePerm = axfs_vfs::VfsNodePerm;
-/// Alias of [`axfs_vfs::VfsNodePerm`].
-pub type DirPerm = axfs_vfs::VfsNodePerm;
 
 /// An opened file object, with open permissions and a cursor.
 pub struct File {
@@ -250,11 +246,6 @@ impl File {
     pub fn get_attr(&self) -> AxResult<FileAttr> {
         self.access_node(Cap::empty())?.get_attr()
     }
-
-    /// Gets the inode number of the file.
-    pub fn get_inode(&self) -> u64 {
-        0
-    }
 }
 
 impl Directory {
@@ -353,16 +344,6 @@ impl Directory {
     /// This only works then the new path is in the same mounted fs.
     pub fn rename(&self, old: &str, new: &str) -> AxResult {
         crate::root::rename(old, new)
-    }
-
-    /// Gets the directory attributes.
-    pub fn get_attr(&self) -> AxResult<DirAttr> {
-        self.access_node(Cap::empty())?.get_attr()
-    }
-
-    /// Gets the inode number of the file.
-    pub fn get_inode(&self) -> u64 {
-        0
     }
 }
 

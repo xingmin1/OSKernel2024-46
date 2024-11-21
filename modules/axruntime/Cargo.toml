@@ -15,7 +15,7 @@ default = []
 smp = ["axhal/smp"]
 irq = ["axhal/irq", "axtask?/irq", "percpu", "kernel_guard"]
 tls = ["axhal/tls", "axtask?/tls"]
-alloc = ["axalloc", "axns"]
+alloc = ["axalloc"]
 paging = ["axhal/paging", "axmm"]
 
 multitask = ["axtask/multitask"]
@@ -35,7 +35,6 @@ axfs = { workspace = true, optional = true }
 axnet = { workspace = true, optional = true }
 axdisplay = { workspace = true, optional = true }
 axtask = { workspace = true, optional = true }
-axns = { workspace = true, optional = true }
 
 crate_interface = "0.1"
 percpu = { version = "0.1", optional = true }
