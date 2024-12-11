@@ -15,6 +15,7 @@ all: build
 
 ax_root:
 	@./scripts/set_ax_root.sh $(AX_ROOT)
+	@make -C $(AX_ROOT) disk_img
 
 user_apps:
 	@make -C ./apps/$(AX_TESTCASE) ARCH=$(ARCH) build
@@ -23,7 +24,7 @@ test:
 	@./scripts/app_test.sh
 
 build run justrun debug disasm: ax_root
-	@make -C $(AX_ROOT) A=$(PWD) FEATURES=$(FEATURES) $@
+	@make -C $(AX_ROOT) A=$(PWD) FEATURES=$(FEATURES) BLK=y NET=y $@
 
 clean: ax_root
 	@make -C $(AX_ROOT) A=$(PWD) clean

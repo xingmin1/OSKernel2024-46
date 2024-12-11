@@ -1,8 +1,10 @@
-use alloc::sync::Arc;
 use core::sync::atomic::AtomicU64;
+
+use alloc::sync::Arc;
 
 use axhal::arch::UspaceContext;
 use axmm::AddrSpace;
+use axns::{AxNamespace, AxNamespaceIf};
 use axsync::Mutex;
 use axtask::{AxTaskRef, TaskExtRef, TaskInner};
 
@@ -20,15 +22,18 @@ pub struct TaskExt {
     pub uctx: UspaceContext,
     /// The virtual memory address space.
     pub aspace: Arc<Mutex<AddrSpace>>,
+    /// The resource namespace
+    pub ns: AxNamespace,
 }
 
 impl TaskExt {
-    pub const fn new(uctx: UspaceContext, aspace: Arc<Mutex<AddrSpace>>) -> Self {
+    pub fn new(uctx: UspaceContext, aspace: Arc<Mutex<AddrSpace>>) -> Self {
         Self {
             proc_id: 233,
             uctx,
             clear_child_tid: AtomicU64::new(0),
             aspace,
+            ns: AxNamespace::new_thread_local(),
         }
     }
 
@@ -40,6 +45,21 @@ impl TaskExt {
     pub(crate) fn set_clear_child_tid(&self, clear_child_tid: u64) {
         self.clear_child_tid
             .store(clear_child_tid, core::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+struct AxNamespaceImpl;
+
+#[crate_interface::impl_interface]
+impl AxNamespaceIf for AxNamespaceImpl {
+    #[inline(never)]
+    fn current_namespace_base() -> *mut u8 {
+        let current = axtask::current();
+        // Safety: We only check whether the task extended data is null and do not access it.
+        if unsafe { current.task_ext_ptr() }.is_null() {
+            return axns::AxNamespace::global().base();
+        }
+        current.task_ext().ns.base()
     }
 }
 
