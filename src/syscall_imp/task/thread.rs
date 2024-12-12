@@ -2,7 +2,7 @@ use arceos_posix_api::{self as api};
 use axtask::{current, TaskExtRef};
 use num_enum::TryFromPrimitive;
 
-use crate::syscall_body;
+use crate::{syscall_body, task::clone_task};
 
 /// ARCH_PRCTL codes
 ///
@@ -45,6 +45,54 @@ pub(crate) fn sys_exit(status: i32) -> ! {
         // TODO: wake up threads, which are blocked by futex, and waiting for the address pointed by clear_child_tid
     }
     axtask::exit(status);
+}
+
+/// # Arguments for riscv
+/// * `flags` - usize
+/// * `user_stack` - usize
+/// * `ptid` - usize
+/// * `tls` - usize
+/// * `ctid` - usize
+///
+/// # Arguments for x86_64
+/// * `flags` - usize
+/// * `user_stack` - usize
+/// * `ptid` - usize
+/// * `ctid` - usize
+/// * `tls` - usize
+pub fn sys_clone(flags: usize, user_stack: usize, ptid_riscv: usize, tls_riscv: usize, ctid: usize) -> isize {
+    let ptid    ;
+    let tls     ;
+    #[cfg(target_arch = "x86_64")]
+    {
+        ptid = tls_riscv;
+        tls = ctid;
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        ptid = ptid_riscv;
+        tls = tls_riscv;
+    }
+
+    let stack = if user_stack == 0 {
+        None
+    } else {
+        Some(user_stack)
+    };
+    const SIGNAL_MASK: usize = 0x3f; // 0x3f = 0b111111
+    if flags & SIGNAL_MASK != 0 {
+        info!("Unsupported signal: 0x{:x}", flags & SIGNAL_MASK);
+    }
+    let clone_flags = flags & !SIGNAL_MASK;
+    if clone_flags != 0 {
+        info!("Unsupported clone flags: 0x{:x}", clone_flags);
+    }
+
+    if let Ok(new_task_id) = clone_task(flags, stack, ptid, tls, ctid) { 
+       new_task_id as isize
+    } else {
+        -1
+    }
 }
 
 pub(crate) fn sys_exit_group(status: i32) -> ! {
