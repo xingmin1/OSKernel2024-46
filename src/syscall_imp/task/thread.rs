@@ -95,6 +95,16 @@ pub fn sys_clone(flags: usize, user_stack: usize, ptid_riscv: usize, tls_riscv: 
     }
 }
 
+/// 等待子进程完成任务，若子进程没有完成，则自身可能会用yield轮询
+/// 成功则返回进程ID；如果指定了WNOHANG，且进程还未改变状态，直接返回0；失败则返回-1；
+/// # Arguments
+/// * `pid` - i32
+/// * `exit_code_ptr` - *mut i32
+/// * `option` - WaitFlags
+pub fn sys_wait4(pid: i32, exit_code_ptr: *mut i32, option: i32, _rusage: *mut u8) -> isize {
+    unsafe { crate::task::wait_pid(pid, exit_code_ptr, option) }
+}
+
 pub(crate) fn sys_exit_group(status: i32) -> ! {
     warn!("Temporarily replace sys_exit_group with sys_exit");
     axtask::exit(status);

@@ -8,6 +8,7 @@ use axmm::AddrSpace;
 use axns::{AxNamespace, AxNamespaceIf};
 use axsync::Mutex;
 use axtask::{current, AxTaskRef, TaskExtRef, TaskInner, WeakAxTaskRef};
+use bitflags::bitflags;
 use memory_addr::MemoryAddr;
 
 /// Task extended data for the monolithic kernel.
@@ -168,4 +169,113 @@ pub fn clone_task(
     let new_task = axtask::spawn_task(new_task);
     current_task.task_ext().add_child(new_task);
     Ok(return_id)
+}
+
+/// 等待子进程完成任务，若子进程没有完成，则自身可能会用yield轮询
+/// 成功则返回进程ID；如果指定了WNOHANG，且进程还未改变状态，直接返回0；失败则返回-1；
+///
+/// # Safety
+///
+/// 保证传入的 ptr 是有效的
+pub unsafe fn wait_pid(pid: i32, exit_code_ptr: *mut i32, option: i32) -> isize {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum WaitStatus {
+        /// 子任务正常退出
+        Exited,
+        /// 子任务正在运行
+        Running,
+        /// 找不到对应的子任务
+        NotExist,
+    }
+    bitflags! {
+        /// 指定 sys_wait4 的选项
+        #[derive(Debug, Clone, Copy)]
+        pub struct WaitFlags: u32 {
+            /// 不挂起当前进程，直接返回
+            const WNOHANG = 1 << 0;
+            /// 报告已执行结束的用户进程的状态
+            const WIMTRACED = 1 << 1;
+            /// 报告还未结束的用户进程的状态
+            const WCONTINUED = 1 << 3;
+            /// Wait for any child
+            const WALL = 1 << 30;
+            /// Wait for cloned process
+            const WCLONE = 1 << 31;
+        }
+    }
+    let current_task = current();
+
+    let mut exit_task_id: usize = 0;
+    let mut answer_id = 0;
+    let mut answer_status;
+    let options = WaitFlags::from_bits_truncate(option as u32);
+
+    if !options.difference(WaitFlags::WNOHANG).is_empty() {
+        warn!("Unsupported option: {:?}", options);
+    }
+
+    'outer: loop {
+        answer_status = WaitStatus::NotExist;
+
+        let children = current_task.task_ext().children.lock();
+        for (index, child) in children.iter().enumerate() {
+            if pid <= 0 {
+                if pid == 0 {
+                    warn!("Process group waiting is not supported.");
+                }
+
+                answer_status = WaitStatus::Running;
+                let state = child.state();
+
+                if state == axtask::TaskState::Exited {
+                    let exit_code = child.exit_code();
+                    answer_status = WaitStatus::Exited;
+
+                    exit_task_id = index;
+                    if !exit_code_ptr.is_null() {
+                        unsafe {
+                            *exit_code_ptr = exit_code << 8;
+                        }
+                    }
+                    answer_id = child.task_ext().proc_id as usize;
+                    break 'outer;
+                }
+            } else if child.task_ext().proc_id == pid as usize {
+                if let Some(exit_code) = child.join() {
+                    answer_status = WaitStatus::Exited;
+                    info!("Waited for pid {} with exit code {:?}", child.task_ext().proc_id, exit_code);
+
+                    exit_task_id = index;
+                    if !exit_code_ptr.is_null() {
+                        unsafe {
+                            *exit_code_ptr = exit_code << 8;
+                        }
+                    }
+                    answer_id = child.task_ext().proc_id as usize;
+                } else {
+                    answer_status = WaitStatus::Running;
+                }
+                break 'outer;
+            }
+        }
+
+        drop(children);
+
+        if !options.contains(WaitFlags::WNOHANG) && answer_status == WaitStatus::Running {
+            axtask::yield_now();
+        } else {
+            break;
+        }
+    }
+
+    // 若进程成功结束，需要将其从父进程的children中删除
+    if answer_status == WaitStatus::Exited {
+        let mut children = current_task.task_ext().children.lock();
+        children.remove(exit_task_id);
+        answer_id as isize
+    } else if options.contains(WaitFlags::WNOHANG) {
+        0
+    } else {
+        -1
+    }
 }
