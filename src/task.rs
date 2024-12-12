@@ -27,9 +27,9 @@ pub struct TaskExt {
 }
 
 impl TaskExt {
-    pub fn new(uctx: UspaceContext, aspace: Arc<Mutex<AddrSpace>>) -> Self {
+    pub fn new(proc_id: usize, uctx: UspaceContext, aspace: Arc<Mutex<AddrSpace>>) -> Self {
         Self {
-            proc_id: 233,
+            proc_id,
             uctx,
             clear_child_tid: AtomicU64::new(0),
             aspace,
@@ -83,6 +83,6 @@ pub fn spawn_user_task(aspace: Arc<Mutex<AddrSpace>>, uctx: UspaceContext) -> Ax
     );
     task.ctx_mut()
         .set_page_table_root(aspace.lock().page_table_root());
-    task.init_task_ext(TaskExt::new(uctx, aspace));
+    task.init_task_ext(TaskExt::new(task.id().as_u64() as usize, uctx, aspace));
     axtask::spawn_task(task)
 }
