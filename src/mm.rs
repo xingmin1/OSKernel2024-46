@@ -36,7 +36,7 @@ pub fn load_user_app(app_name: &str) -> AxResult<(VirtAddr, VirtAddr, AddrSpace)
             continue;
         }
 
-        uspace.write(segement.start_vaddr + segement.offset, segement.data)?;
+        uspace.write(segement.start_vaddr + segement.offset, &segement.data)?;
 
         // TDOO: flush the I-cache
     }

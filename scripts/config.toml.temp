@@ -7,3 +7,4 @@ axns = { path = "%AX_ROOT%/modules/axns" }
 axtask = { path = "%AX_ROOT%/modules/axtask" }
 axsync = { path = "%AX_ROOT%/modules/axsync" }
 axruntime = { path = "%AX_ROOT%/modules/axruntime" }
+axfs = { path = "%AX_ROOT%/modules/axfs" }

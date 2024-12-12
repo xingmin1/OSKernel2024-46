@@ -21,13 +21,20 @@ use alloc::sync::Arc;
 use axhal::arch::UspaceContext;
 use axsync::Mutex;
 
+const JUNIOR: &[&str] = &[
+    "brk", "chdir", "clone", "close", "dup2", "dup", "execve", "exit", "fork", "fstat", "getcwd",
+    "getdents", "getpid", "getppid", "gettimeofday", "mkdir_", "mmap", "mount", "munmap", "openat",
+    "open", "pipe", "read", "times", "umount", "uname", "unlink", "wait", "waitpid", "write", "yield"
+];
+
 #[no_mangle]
 fn main() {
-    loader::list_apps();
-    let testcases = option_env!("AX_TESTCASES_LIST")
-        .unwrap_or_else(|| "Please specify the testcases list by making user_apps")
-        .split(',')
-        .filter(|&x| !x.is_empty());
+    // let testcases = option_env!("AX_TESTCASES_LIST")
+    // .unwrap_or_else(|| "Please specify the testcases list by making user_apps")
+    // .split(',')
+    // .filter(|&x| !x.is_empty());
+
+    let testcases = JUNIOR;
     for testcase in testcases {
         info!("Running testcase: {}", testcase);
         let (entry_vaddr, ustack_top, uspace) = mm::load_user_app(testcase).unwrap();
