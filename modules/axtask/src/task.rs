@@ -22,7 +22,7 @@ pub struct TaskId(u64);
 /// The possible states of a task.
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub(crate) enum TaskState {
+pub enum TaskState {
     Running = 1,
     Ready = 2,
     Blocked = 3,
@@ -126,6 +126,17 @@ impl TaskInner {
         alloc::format!("Task({}, {:?})", self.id.as_u64(), self.name)
     }
 
+    /// 返回任务的状态
+    #[inline]
+    pub fn state(&self) -> TaskState {
+        self.state.load(Ordering::Acquire).into()
+    }
+
+    /// 返回任务的退出码
+    pub fn exit_code(&self) -> i32 {
+        self.exit_code.load(Ordering::Acquire)
+    }
+
     /// Wait for the task to exit, and return the exit code.
     ///
     /// It will return immediately if the task has already exited (but not dropped).
@@ -209,10 +220,10 @@ impl TaskInner {
         Arc::new(AxTask::new(self))
     }
 
-    #[inline]
-    pub(crate) fn state(&self) -> TaskState {
-        self.state.load(Ordering::Acquire).into()
-    }
+    // #[inline]
+    // pub(crate) fn state(&self) -> TaskState {
+    //     self.state.load(Ordering::Acquire).into()
+    // }
 
     #[inline]
     pub(crate) fn set_state(&self, state: TaskState) {

@@ -15,6 +15,8 @@ pub use crate::wait_queue::WaitQueue;
 pub type AxTaskRef = Arc<AxTask>;
 pub type WeakAxTaskRef = Weak<AxTask>;
 
+pub use crate::task::TaskState;
+
 cfg_if::cfg_if! {
     if #[cfg(feature = "sched_rr")] {
         const MAX_TIME_SLICE: usize = 5;
