@@ -1,6 +1,9 @@
 //! Task APIs for multi-task configuration.
 
-use alloc::{string::String, sync::{Arc, Weak}};
+use alloc::{
+    string::String,
+    sync::{Arc, Weak},
+};
 
 pub(crate) use crate::run_queue::{AxRunQueue, RUN_QUEUE};
 

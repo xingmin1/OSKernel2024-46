@@ -172,7 +172,11 @@ impl AddrSpace {
             assert!(area.start().is_aligned_4k());
             assert!(area.size() % PAGE_SIZE_4K == 0);
             assert!(area.flags().contains(MappingFlags::USER));
-            assert!(self.va_range.contains_range(VirtAddrRange::from_start_size(area.start(), area.size())), "MemorySet contains out-of-va-range area");
+            assert!(
+                self.va_range
+                    .contains_range(VirtAddrRange::from_start_size(area.start(), area.size())),
+                "MemorySet contains out-of-va-range area"
+            );
         }
         self.areas.clear(&mut self.pt).unwrap();
         Ok(())
@@ -315,9 +319,13 @@ impl AddrSpace {
         if !cfg!(target_arch = "aarch64") {
             // ARMv8 使用一个单独的页表 (TTBR0_EL1) 用于用户空间，不需要将内核部分复制到用户页表中。
             let kernel_aspace = KERNEL_ASPACE.lock();
-            new_pt.copy_from(&kernel_aspace.pt, kernel_aspace.base(), kernel_aspace.size());
+            new_pt.copy_from(
+                &kernel_aspace.pt,
+                kernel_aspace.base(),
+                kernel_aspace.size(),
+            );
         }
-        
+
         // 创建一个新的 MemorySet 并将原始区域映射到新的页表中。
         let mut new_areas = MemorySet::new();
         let mut buf = vec![0u8; PAGE_SIZE_4K];
@@ -328,7 +336,9 @@ impl AddrSpace {
                 area.flags(),
                 area.backend().clone(),
             );
-            new_areas.map(new_area, &mut new_pt, false).map_err(mapping_err_to_ax_err)?;
+            new_areas
+                .map(new_area, &mut new_pt, false)
+                .map_err(mapping_err_to_ax_err)?;
 
             // 将原区域的数据复制到新区域中。
             buf.resize(buf.capacity().max(area.size()), 0);
