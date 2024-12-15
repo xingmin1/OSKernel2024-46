@@ -105,6 +105,55 @@ pub fn sys_wait4(pid: i32, exit_code_ptr: *mut i32, option: i32, _rusage: *mut u
     unsafe { crate::task::wait_pid(pid, exit_code_ptr, option) }
 }
 
+/// 执行一个指定的程序
+/// # Arguments
+/// * `path` - 程序路径名称，类型为 `*const i8`
+/// * `argv` - 程序的参数数组指针，类型为 `*const usize`
+/// * `envp` - 环境变量数组指针，类型为 `*const usize`
+///
+/// # 返回值
+/// 成功时不返回，失败返回 -1
+pub fn sys_execve(path: *const i8, argv: *const usize, envp: *const usize) -> isize {
+    // 转换路径指针为字符串
+    let path_str = match arceos_posix_api::char_ptr_to_str(path) {
+        Ok(p) => p,
+        Err(err) => {
+            error!("Failed to convert path to str: {:?}", err);
+            return -1;
+        }
+    };
+
+    // 检查路径是否包含多级目录
+    if path_str.split('/').filter(|s| !s.is_empty()).count() > 1 {
+        info!("Multi-level directories are not supported");
+        return -1;
+    }
+
+    // 检查参数和环境变量是否为空指针，若不为空指针则不支持
+    let argv_valid = unsafe { argv.is_null() || *argv == 0 };
+    let envp_valid = unsafe { envp.is_null() || *envp == 0 };
+
+    if !argv_valid {
+        info!("argv is not supported");
+    }
+
+    if !envp_valid {
+        info!("envp is not supported");
+    }
+
+    // 执行程序
+    match crate::task::exec(path_str) {
+        Ok(_) => {
+            unreachable!("exec should not return");
+        }
+        Err(err) => {
+            error!("Failed to exec: {:?}", err);
+            -1
+        }
+    }
+}
+
+
 pub(crate) fn sys_exit_group(status: i32) -> ! {
     warn!("Temporarily replace sys_exit_group with sys_exit");
     axtask::exit(status);

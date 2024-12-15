@@ -1,8 +1,8 @@
 use core::sync::atomic::AtomicU64;
 
-use alloc::{string::String, sync::Arc, vec::Vec};
+use alloc::{string::{String, ToString}, sync::Arc, vec::Vec};
 
-use axerrno::AxResult;
+use axerrno::{AxError, AxResult};
 use axhal::arch::{TrapFrame, UspaceContext};
 use axmm::AddrSpace;
 use axns::{AxNamespace, AxNamespaceIf};
@@ -277,5 +277,43 @@ pub unsafe fn wait_pid(pid: i32, exit_code_ptr: *mut i32, option: i32) -> isize 
         0
     } else {
         -1
+    }
+}
+
+/// 将当前进程替换为指定的用户程序
+pub fn exec(program_name: &str) -> AxResult<()> {
+    let current_task = current();
+
+    // 原有的name所在页面会被unmap，所以需要提前拷贝
+    let program_name = program_name.to_string();
+
+    // 确保地址空间只被当前任务引用
+    let mut aspace = current_task.task_ext().aspace.lock();
+    if Arc::strong_count(&current_task.task_ext().aspace) != 1 {
+        warn!("Address space is shared by multiple tasks, exec is not supported");
+        return Err(AxError::Unsupported);
+    }
+
+    // 释放旧的用户地址空间
+    aspace.unmap_user_areas()?;
+    axhal::arch::flush_tlb(None);
+
+    // 加载新程序，获取入口点和用户栈基地址
+    let (entry_point, user_stack_base) = crate::mm::map_elf_sections(&program_name, &mut aspace)
+        .map_err(|_| {
+            error!("Failed to load app {}", program_name);
+            AxError::NotFound
+        })?;
+    current_task.set_name(&program_name);
+
+    // 更新用户上下文
+    let task_ext = unsafe { &mut *(current_task.task_ext_ptr() as *mut TaskExt) };
+    task_ext.uctx = UspaceContext::new(entry_point.as_usize(), user_stack_base, 0);
+
+    // 切换到用户态
+    unsafe {
+        task_ext
+            .uctx
+            .enter_uspace(current_task.kernel_stack_top().expect("No kernel stack top"));
     }
 }
