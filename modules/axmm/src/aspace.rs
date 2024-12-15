@@ -166,6 +166,18 @@ impl AddrSpace {
         Ok(())
     }
 
+    /// 将用户区域的映射从地址空间中移除。
+    pub fn unmap_user_areas(&mut self) -> AxResult {
+        for area in self.areas.iter() {
+            assert!(area.start().is_aligned_4k());
+            assert!(area.size() % PAGE_SIZE_4K == 0);
+            assert!(area.flags().contains(MappingFlags::USER));
+            assert!(self.va_range.contains_range(VirtAddrRange::from_start_size(area.start(), area.size())), "MemorySet contains out-of-va-range area");
+        }
+        self.areas.clear(&mut self.pt).unwrap();
+        Ok(())
+    }
+
     /// To process data in this area with the given function.
     ///
     /// Now it supports reading and writing data in the given interval.
