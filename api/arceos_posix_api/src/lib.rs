@@ -19,6 +19,8 @@ mod utils;
 
 mod imp;
 
+pub use utils::char_ptr_to_str;
+
 /// Platform-specific constants and parameters.
 pub mod config {
     pub use axconfig::*;
