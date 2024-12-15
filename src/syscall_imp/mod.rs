@@ -61,6 +61,7 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
             tf.arg3() as _,
         ) as _,
         Sysno::getpid => sys_getpid() as isize,
+        Sysno::getppid => sys_getppid(),
         Sysno::gettid => sys_gettid() as isize,
         Sysno::exit => sys_exit(tf.arg0() as _),
         Sysno::clone => sys_clone(

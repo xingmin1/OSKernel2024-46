@@ -29,6 +29,11 @@ pub(crate) fn sys_getpid() -> i32 {
     current().task_ext().proc_id as i32
 }
 
+pub(crate) fn sys_getppid() -> isize {
+    // 当前任务的父任务 PID，如果不存在父任务，返回 0
+    current().task_ext().parent_id().unwrap_or(0) as isize
+}
+
 pub(crate) fn sys_gettid() -> i32 {
     api::sys_getpid()
 }

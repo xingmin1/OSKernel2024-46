@@ -86,6 +86,16 @@ impl TaskExt {
             children.remove(pos);
         }
     }
+
+    /// 获取父任务的 PID，如果父任务不存在则返回 `None`
+    pub fn parent_id(&self) -> Option<usize> {
+        // 由于parent引用是父进程的主进程，所以其tid就是父进程的pid。
+        // 第一个进程的父进程是一个内核线程，所以这样做可以统一处理。
+        self.parent
+            .as_ref()
+            .and_then(|parent| parent.upgrade())
+            .map(|task| task.id().as_u64() as usize)
+    }
 }
 
 struct AxNamespaceImpl;
