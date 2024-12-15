@@ -1,6 +1,10 @@
 use core::sync::atomic::AtomicU64;
 
-use alloc::{string::{String, ToString}, sync::Arc, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    sync::Arc,
+    vec::Vec,
+};
 
 use axerrno::{AxError, AxResult};
 use axhal::arch::{TrapFrame, UspaceContext};
@@ -34,7 +38,12 @@ pub struct TaskExt {
 }
 
 impl TaskExt {
-    pub fn new(proc_id: usize, uctx: UspaceContext, aspace: Arc<Mutex<AddrSpace>>, parent: &AxTaskRef) -> Self {
+    pub fn new(
+        proc_id: usize,
+        uctx: UspaceContext,
+        aspace: Arc<Mutex<AddrSpace>>,
+        parent: &AxTaskRef,
+    ) -> Self {
         Self {
             proc_id,
             uctx,
@@ -56,7 +65,6 @@ impl TaskExt {
             .store(clear_child_tid, core::sync::atomic::Ordering::Relaxed);
     }
 
-        
     /// 设置父任务
     pub fn set_parent(&mut self, parent: AxTaskRef) {
         self.parent = Some(Arc::downgrade(&parent));
@@ -71,7 +79,10 @@ impl TaskExt {
     /// 移除子任务
     pub fn remove_child(&self, child_id: usize) {
         let mut children = self.children.lock();
-        if let Some(pos) = children.iter().position(|c| c.task_ext().proc_id == child_id) {
+        if let Some(pos) = children
+            .iter()
+            .position(|c| c.task_ext().proc_id == child_id)
+        {
             children.remove(pos);
         }
     }
@@ -112,7 +123,12 @@ pub fn spawn_user_task(aspace: Arc<Mutex<AddrSpace>>, uctx: UspaceContext) -> Ax
     );
     task.ctx_mut()
         .set_page_table_root(aspace.lock().page_table_root());
-    task.init_task_ext(TaskExt::new(task.id().as_u64() as usize, uctx, aspace, current().as_task_ref()));
+    task.init_task_ext(TaskExt::new(
+        task.id().as_u64() as usize,
+        uctx,
+        aspace,
+        current().as_task_ref(),
+    ));
     axtask::spawn_task(task)
 }
 
@@ -146,10 +162,15 @@ pub fn clone_task(
     // 复制原有的地址空间
     let mut current_aspace = current_task.task_ext().aspace.lock();
     let new_aspace = current_aspace.clone_or_err()?;
-    new_task.ctx_mut().set_page_table_root(new_aspace.page_table_root());
+    new_task
+        .ctx_mut()
+        .set_page_table_root(new_aspace.page_table_root());
 
     // 复制原有的trap上下文并设置用户空间上下文
-    let trap_frame_vir_address = current_task.kernel_stack_top().expect("no kernel stack top").sub(core::mem::size_of::<TrapFrame>());
+    let trap_frame_vir_address = current_task
+        .kernel_stack_top()
+        .expect("no kernel stack top")
+        .sub(core::mem::size_of::<TrapFrame>());
     let mut trap_frame = unsafe { *(trap_frame_vir_address.as_ptr_of::<TrapFrame>()) };
     trap_frame.sepc += 4;
     let mut new_uspace_context = UspaceContext::from(&trap_frame);
@@ -157,7 +178,7 @@ pub fn clone_task(
     if let Some(stack) = stack {
         new_uspace_context.set_sp(stack);
     }
-    
+
     // 初始化新任务扩展，启动新任务，维护父子关系
     let return_id = new_task.id().as_u64();
     new_task.init_task_ext(TaskExt::new(
@@ -243,7 +264,11 @@ pub unsafe fn wait_pid(pid: i32, exit_code_ptr: *mut i32, option: i32) -> isize 
             } else if child.task_ext().proc_id == pid as usize {
                 if let Some(exit_code) = child.join() {
                     answer_status = WaitStatus::Exited;
-                    info!("Waited for pid {} with exit code {:?}", child.task_ext().proc_id, exit_code);
+                    info!(
+                        "Waited for pid {} with exit code {:?}",
+                        child.task_ext().proc_id,
+                        exit_code
+                    );
 
                     exit_task_id = index;
                     if !exit_code_ptr.is_null() {
@@ -312,8 +337,10 @@ pub fn exec(program_name: &str) -> AxResult<()> {
 
     // 切换到用户态
     unsafe {
-        task_ext
-            .uctx
-            .enter_uspace(current_task.kernel_stack_top().expect("No kernel stack top"));
+        task_ext.uctx.enter_uspace(
+            current_task
+                .kernel_stack_top()
+                .expect("No kernel stack top"),
+        );
     }
 }

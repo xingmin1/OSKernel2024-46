@@ -26,7 +26,10 @@ pub fn load_user_app(app_name: &str) -> AxResult<(VirtAddr, VirtAddr, AddrSpace)
     Ok((entry, ustack_pointer, uspace))
 }
 
-pub fn map_elf_sections(app_name: &str, uspace: &mut AddrSpace) -> Result<(VirtAddr, VirtAddr), axerrno::AxError> {
+pub fn map_elf_sections(
+    app_name: &str,
+    uspace: &mut AddrSpace,
+) -> Result<(VirtAddr, VirtAddr), axerrno::AxError> {
     let elf_info = loader::load_elf(app_name, uspace.base());
     for segement in elf_info.segments {
         debug!(

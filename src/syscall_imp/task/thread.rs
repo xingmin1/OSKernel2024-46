@@ -60,9 +60,15 @@ pub(crate) fn sys_exit(status: i32) -> ! {
 /// * `ptid` - usize
 /// * `ctid` - usize
 /// * `tls` - usize
-pub fn sys_clone(flags: usize, user_stack: usize, ptid_riscv: usize, tls_riscv: usize, ctid: usize) -> isize {
-    let ptid    ;
-    let tls     ;
+pub fn sys_clone(
+    flags: usize,
+    user_stack: usize,
+    ptid_riscv: usize,
+    tls_riscv: usize,
+    ctid: usize,
+) -> isize {
+    let ptid;
+    let tls;
     #[cfg(target_arch = "x86_64")]
     {
         ptid = tls_riscv;
@@ -88,8 +94,8 @@ pub fn sys_clone(flags: usize, user_stack: usize, ptid_riscv: usize, tls_riscv: 
         info!("Unsupported clone flags: 0x{:x}", clone_flags);
     }
 
-    if let Ok(new_task_id) = clone_task(flags, stack, ptid, tls, ctid) { 
-       new_task_id as isize
+    if let Ok(new_task_id) = clone_task(flags, stack, ptid, tls, ctid) {
+        new_task_id as isize
     } else {
         -1
     }
@@ -152,7 +158,6 @@ pub fn sys_execve(path: *const i8, argv: *const usize, envp: *const usize) -> is
         }
     }
 }
-
 
 pub(crate) fn sys_exit_group(status: i32) -> ! {
     warn!("Temporarily replace sys_exit_group with sys_exit");
