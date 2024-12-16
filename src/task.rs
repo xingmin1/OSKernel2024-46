@@ -1,12 +1,12 @@
 use core::sync::atomic::AtomicU64;
 
 use alloc::{
-    string::{String, ToString},
-    sync::Arc,
-    vec::Vec,
+    string::{String, ToString}, sync::Arc, vec::Vec
 };
 
+use arceos_posix_api::FD_TABLE;
 use axerrno::{AxError, AxResult};
+use axfs::{CURRENT_DIR, CURRENT_DIR_PATH};
 use axhal::arch::{TrapFrame, UspaceContext};
 use axmm::AddrSpace;
 use axns::{AxNamespace, AxNamespaceIf};
@@ -96,6 +96,12 @@ impl TaskExt {
             .and_then(|parent| parent.upgrade())
             .map(|task| task.id().as_u64() as usize)
     }
+
+    pub(crate) fn ns_init_new(&self) {
+        FD_TABLE.deref_from(&self.ns).init_new(FD_TABLE.copy_inner());
+        CURRENT_DIR.deref_from(&self.ns).init_new(CURRENT_DIR.copy_inner());
+        CURRENT_DIR_PATH.deref_from(&self.ns).init_new(CURRENT_DIR_PATH.copy_inner());
+    }
 }
 
 struct AxNamespaceImpl;
@@ -139,6 +145,7 @@ pub fn spawn_user_task(aspace: Arc<Mutex<AddrSpace>>, uctx: UspaceContext) -> Ax
         aspace,
         current().as_task_ref(),
     ));
+    task.task_ext().ns_init_new();
     axtask::spawn_task(task)
 }
 
@@ -191,12 +198,14 @@ pub fn clone_task(
 
     // 初始化新任务扩展，启动新任务，维护父子关系
     let return_id = new_task.id().as_u64();
-    new_task.init_task_ext(TaskExt::new(
+    let new_task_ext = TaskExt::new(
         return_id as usize,
         new_uspace_context,
         Arc::new(Mutex::new(new_aspace)),
         current_task.as_task_ref(),
-    ));
+    );
+    new_task_ext.ns_init_new();
+    new_task.init_task_ext(new_task_ext);
     let new_task = axtask::spawn_task(new_task);
     current_task.task_ext().add_child(new_task);
     Ok(return_id)
