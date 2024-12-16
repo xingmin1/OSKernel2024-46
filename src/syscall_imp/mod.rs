@@ -42,6 +42,8 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
     match Sysno::from(syscall_num as u32) {
         Sysno::read => sys_read(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _),
         Sysno::write => sys_write(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _),
+        Sysno::pipe2 => sys_pipe2(tf.arg0() as _, tf.arg1() as _),
+        Sysno::close => sys_close(tf.arg0() as _),
         Sysno::mmap => sys_mmap(
             tf.arg0() as _,
             tf.arg1() as _,
