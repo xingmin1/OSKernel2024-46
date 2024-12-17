@@ -103,3 +103,66 @@ pub(crate) fn sys_dup3(old_fd: i32, new_fd: i32, flags: i32) -> i32 {
         _ => -1,
     }
 }
+
+/// 将当前工作目录更改为指定路径。
+/// 
+/// # 参数
+/// * `path` - 指向包含目标目录路径的以 null 结尾的字符串的指针
+/// 
+/// # 返回值
+/// * 成功时返回 `0`
+/// * 失败时返回 `-1`
+pub(crate) fn sys_chdir(path: *const i8) -> i32 {
+    let path = match arceos_posix_api::char_ptr_to_str(path) {
+        Ok(path) => path,
+        Err(err) => {
+            warn!("Failed to convert path: {err:?}");
+            return -1;
+        }
+    };
+
+    axfs::api::set_current_dir(path)
+        .map(|_| 0)
+        .unwrap_or_else(|err| {
+            warn!("Failed to change directory: {err:?}");
+            -1
+        })
+}
+
+/// 在给定的目录文件描述符相对路径下创建一个新目录。
+/// 
+/// # 参数
+/// * `dirfd` - 目录文件描述符（-100 表示当前工作目录）
+/// * `path` - 指向包含目录路径的以 null 结尾的字符串的指针
+/// * `mode` - 目录权限（当前忽略）
+/// 
+/// # 返回值
+/// * 成功时返回 `0`
+/// * 失败时返回 `-1`
+pub(crate) fn sys_mkdirat(dirfd: i32, path: *const i8, mode: u32) -> i32 {
+    const AT_FDCWD: i32 = -100;
+
+    let path = match arceos_posix_api::char_ptr_to_str(path) {
+        Ok(path) => path,
+        Err(err) => {
+            warn!("Failed to convert path: {err:?}");
+            return -1;
+        }
+    };
+
+    if !path.starts_with('/') && dirfd != AT_FDCWD {
+        warn!("Unsupported dirfd: {dirfd}");
+        return -1;
+    }
+
+    if mode != 0 {
+        info!("Directory mode {mode} is currently ignored");
+    }
+
+    axfs::api::create_dir(path)
+        .map(|_| 0)
+        .unwrap_or_else(|err| {
+            warn!("Failed to create directory: {err:?}");
+            -1
+        })
+}
