@@ -83,3 +83,23 @@ fn allocate_user_buffer(size: usize) -> Option<*mut u8> {
 
     Some(addr.as_usize() as *mut u8)
 }
+
+pub(crate) fn sys_dup(fd: i32) -> i32 {
+    arceos_posix_api::get_file_like(fd)
+        .and_then(|f| arceos_posix_api::add_file_like(f))
+        .unwrap_or_else(|err| {
+            warn!("Failed to duplicate file descriptor: {:?}", err);
+            -1
+        })
+}
+
+pub(crate) fn sys_dup3(old_fd: i32, new_fd: i32, flags: i32) -> i32 {
+    if flags != 0 {
+        warn!("Unsupported flags: {}", flags);
+    }
+
+    match arceos_posix_api::sys_dup2(old_fd, new_fd) {
+        ok @0.. => ok as _,
+        _ => -1,
+    }
+}
