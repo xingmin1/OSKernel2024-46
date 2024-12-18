@@ -1,6 +1,6 @@
 use core::ffi::c_void;
 
-use arceos_posix_api as api;
+use arceos_posix_api::{self as api, ctypes::mode_t};
 
 pub(crate) fn sys_read(fd: i32, buf: *mut c_void, count: usize) -> isize {
     api::sys_read(fd, buf, count)
@@ -44,4 +44,8 @@ pub(crate) fn sys_close(fd: i32) -> isize {
             -1
         },
     }
+}
+
+pub(crate) fn sys_openat(dirfd: i32, path: *const i8, flags: i32, mode: mode_t) -> isize {
+    api::sys_openat(dirfd, path, flags, mode) as isize
 }
