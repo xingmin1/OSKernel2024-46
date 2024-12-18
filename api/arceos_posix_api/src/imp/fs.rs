@@ -97,7 +97,12 @@ fn flags_to_options(flags: c_int, _mode: ctypes::mode_t) -> OpenOptions {
         options.create(true);
     }
     if flags & ctypes::O_EXEC != 0 {
-        options.create_new(true);
+        // options.create_new(true);
+        options.execute(true);
+        // options.directory(true);
+    }
+    if flags & ctypes::O_DIRECTORY != 0 {
+        options.directory(true);
     }
     options
 }
@@ -108,12 +113,96 @@ fn flags_to_options(flags: c_int, _mode: ctypes::mode_t) -> OpenOptions {
 /// has the maximum number of files open.
 pub fn sys_open(filename: *const c_char, flags: c_int, mode: ctypes::mode_t) -> c_int {
     let filename = char_ptr_to_str(filename);
+
     debug!("sys_open <= {:?} {:#o} {:#o}", filename, flags, mode);
+
     syscall_body!(sys_open, {
         let options = flags_to_options(flags, mode);
-        let file = axfs::fops::File::open(filename?, &options)?;
-        File::new(file).add_to_fd_table()
+        if options.has_directory() {
+            return axfs::fops::Directory::open_dir(filename?, &options)
+                .map_err(Into::into)
+                .map(Directory::new)
+                .and_then(Directory::add_to_fd_table);
+        }
+        add_file_or_directory_fd(
+            axfs::fops::File::open,
+            axfs::fops::Directory::open_dir,
+            filename?,
+            &options,
+        )
     })
+}
+
+/// 功能：打开或创建一个文件；
+/// 输入：
+///    fd：文件所在目录的文件描述符。
+///    filename：要打开或创建的文件名。如为绝对路径，则忽略fd。如为相对路径，且fd是AT_FDCWD，则filename是相对于当前工作目录来说的。如为相对路径，且fd是一个文件描述符，则filename是相对于fd所指向的目录来说的。
+///    flags：必须包含如下访问模式的其中一种：O_RDONLY，O_WRONLY，O_RDWR。还可以包含文件创建标志和文件状态标志。
+///    mode：文件的所有权描述。详见man 7 inode 。
+/// 返回值：成功执行，返回新的文件描述符。失败，返回-1。
+pub fn sys_openat(
+    dirfd: c_int,
+    filename: *const c_char,
+    flags: c_int,
+    mode: ctypes::mode_t,
+) -> c_int {
+    let filename = match char_ptr_to_str(filename) {
+        Ok(s) => s,
+        Err(_) => return -1,
+    };
+
+    debug!(
+        "sys_openat <= {} {:?} {:#o} {:#o}",
+        dirfd, filename, flags, mode
+    );
+
+    let options = flags_to_options(flags, mode);
+
+    const AT_FDCWD: c_int = -100;
+    if filename.starts_with('/') || dirfd == AT_FDCWD {
+        return sys_open(filename.as_ptr() as _, flags, mode);
+    }
+
+    match Directory::from_fd(dirfd).and_then(|dir| {
+        add_file_or_directory_fd(
+            |filename, options| dir.inner.lock().open_file_at(filename, options),
+            |filename, options| dir.inner.lock().open_dir_at(filename, options),
+            &filename,
+            &options,
+        )
+    }) {
+        Ok(fd) => fd,
+        Err(e) => {
+            debug!("sys_openat => {}", e);
+            -1
+        }
+    }
+}
+
+// 使用给定的函数打开文件或目录，并将其添加到文件描述符表中。
+// 先尝试打开文件，如果失败，再尝试打开目录。
+fn add_file_or_directory_fd<F, D, E>(
+    open_file: F,
+    open_dir: D,
+    filename: &str,
+    options: &OpenOptions,
+) -> LinuxResult<c_int>
+where
+    E: Into<LinuxError>,
+    F: FnOnce(&str, &OpenOptions) -> Result<axfs::fops::File, E>,
+    D: FnOnce(&str, &OpenOptions) -> Result<axfs::fops::Directory, E>,
+{
+    open_file(filename, options)
+        .map_err(Into::into)
+        .map(File::new)
+        .and_then(File::add_to_fd_table)
+        .or_else(|e| match e {
+            LinuxError::EISDIR => open_dir(filename, options)
+                .map_err(Into::into)
+                .map(Directory::new)
+                .and_then(Directory::add_to_fd_table),
+            _ => Err(e.into()),
+        })
 }
 
 /// Set the position of the file indicated by `fd`.
@@ -214,4 +303,56 @@ pub fn sys_rename(old: *const c_char, new: *const c_char) -> c_int {
         axfs::api::rename(old_path, new_path)?;
         Ok(0)
     })
+}
+
+pub struct Directory {
+    inner: Mutex<axfs::fops::Directory>,
+}
+
+impl Directory {
+    fn new(inner: axfs::fops::Directory) -> Self {
+        Self {
+            inner: Mutex::new(inner),
+        }
+    }
+
+    fn add_to_fd_table(self) -> LinuxResult<c_int> {
+        super::fd_ops::add_file_like(Arc::new(self))
+    }
+
+    fn from_fd(fd: c_int) -> LinuxResult<Arc<Self>> {
+        let f = super::fd_ops::get_file_like(fd)?;
+        f.into_any()
+            .downcast::<Self>()
+            .map_err(|_| LinuxError::EINVAL)
+    }
+}
+
+impl FileLike for Directory {
+    fn read(&self, _buf: &mut [u8]) -> LinuxResult<usize> {
+        Err(LinuxError::EBADF)
+    }
+
+    fn write(&self, _buf: &[u8]) -> LinuxResult<usize> {
+        Err(LinuxError::EBADF)
+    }
+
+    fn stat(&self) -> LinuxResult<ctypes::stat> {
+        Err(LinuxError::EBADF)
+    }
+
+    fn into_any(self: Arc<Self>) -> Arc<dyn core::any::Any + Send + Sync> {
+        self
+    }
+
+    fn poll(&self) -> LinuxResult<PollState> {
+        Ok(PollState {
+            readable: true,
+            writable: false,
+        })
+    }
+
+    fn set_nonblocking(&self, _nonblocking: bool) -> LinuxResult {
+        Ok(())
+    }
 }
