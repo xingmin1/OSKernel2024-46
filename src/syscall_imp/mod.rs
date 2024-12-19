@@ -59,6 +59,7 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
         Sysno::mkdirat => sys_mkdirat(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _) as _,
         Sysno::dup => sys_dup(tf.arg0() as _) as _,
         Sysno::dup3 => sys_dup3(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _) as _,
+        Sysno::getdents64 => sys_getdents64(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _) as _,
         Sysno::writev => sys_writev(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _),
         Sysno::sched_yield => sys_sched_yield() as isize,
         Sysno::nanosleep => sys_nanosleep(tf.arg0() as _, tf.arg1() as _) as _,
