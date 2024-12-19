@@ -160,7 +160,7 @@ impl File {
         let attr = node.get_attr()?;
         debug!("attr: {:?}", attr);
         if attr.is_dir()
-            && (opts.create || opts.create_new || opts.write || opts.append || opts.truncate || opts.execute)
+            && (opts.create || opts.create_new || opts.write || opts.append || opts.truncate || opts.execute || opts.read)
         {
             return ax_err!(IsADirectory);
         }

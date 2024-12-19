@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{sync::Arc, string::String};
 use core::ffi::{c_char, c_int};
 
 use axerrno::{LinuxError, LinuxResult};
@@ -119,9 +119,7 @@ pub fn sys_open(filename: *const c_char, flags: c_int, mode: ctypes::mode_t) -> 
     syscall_body!(sys_open, {
         let options = flags_to_options(flags, mode);
         if options.has_directory() {
-            return axfs::fops::Directory::open_dir(filename?, &options)
-                .map_err(Into::into)
-                .map(Directory::new)
+            return Directory::from_path(filename?.into(), &options)
                 .and_then(Directory::add_to_fd_table);
         }
         add_file_or_directory_fd(
@@ -199,7 +197,7 @@ where
         .or_else(|e| match e {
             LinuxError::EISDIR => open_dir(filename, options)
                 .map_err(Into::into)
-                .map(Directory::new)
+                .map(|d| Directory::new(d, filename.into()))
                 .and_then(Directory::add_to_fd_table),
             _ => Err(e.into()),
         })
@@ -307,24 +305,36 @@ pub fn sys_rename(old: *const c_char, new: *const c_char) -> c_int {
 
 pub struct Directory {
     inner: Mutex<axfs::fops::Directory>,
+    path: String,
 }
 
 impl Directory {
-    fn new(inner: axfs::fops::Directory) -> Self {
+    fn new(inner: axfs::fops::Directory, path: String) -> Self {
         Self {
             inner: Mutex::new(inner),
+            path,
         }
+    }
+
+    fn from_path(path: String, options: &OpenOptions) -> LinuxResult<Self> {
+        axfs::fops::Directory::open_dir(&path, options)
+            .map_err(Into::into)
+            .map(|d| Self::new(d, path))
     }
 
     fn add_to_fd_table(self) -> LinuxResult<c_int> {
         super::fd_ops::add_file_like(Arc::new(self))
     }
 
-    fn from_fd(fd: c_int) -> LinuxResult<Arc<Self>> {
+    pub fn from_fd(fd: c_int) -> LinuxResult<Arc<Self>> {
         let f = super::fd_ops::get_file_like(fd)?;
         f.into_any()
             .downcast::<Self>()
             .map_err(|_| LinuxError::EINVAL)
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
     }
 }
 
