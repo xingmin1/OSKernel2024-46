@@ -1,4 +1,5 @@
 use alloc::string::ToString;
+use axerrno::AxError;
 use axhal::paging::MappingFlags;
 use axtask::{current, TaskExtRef};
 use core::ffi::c_void;
@@ -352,6 +353,83 @@ pub(crate) fn sys_getdents64(fd: i32, buf: *mut c_void, len: usize) -> isize {
             }
 
             Ok(total_size as isize)
+        })
+        .unwrap_or(-1)
+}
+
+/// 创建一个链接 new_path 指向 old_path。
+/// old_path - 旧文件路径
+/// new_path - 新文件路径
+/// flags - 链接标志
+/// 返回值 - 成功时返回 0，失败时返回 -1
+pub(crate) fn sys_linkat(
+    old_dirfd: i32,
+    old_path: *const u8,
+    new_dirfd: i32,
+    new_path: *const u8,
+    flags: i32,
+) -> i32 {
+    if flags != 0 {
+        warn!("Unsupported flags: {flags}");
+    }
+
+    // 处理原路径
+    arceos_posix_api::deal_with_path(old_dirfd as isize, Some(old_path), false)
+        .inspect_err(|err| warn!("Failed to convert old path: {err:?}"))
+        .and_then(|old_path| {
+            // 处理新路径
+            arceos_posix_api::deal_with_path(new_dirfd as isize, Some(new_path), false)
+                .inspect_err(|err| warn!("Failed to convert new path: {err:?}"))
+                .map(|new_path| (old_path, new_path))
+        })
+        .and_then(|(old_path, new_path)| {
+            // 创建链接
+            arceos_posix_api::HARDLINK_MANAGER
+                .create_link(&new_path, &old_path)
+                .inspect_err(|err| warn!("Failed to create link: {err:?}"))
+                .map_err(Into::into)
+        })
+        .map(|_| 0)
+        .unwrap_or(-1)
+}
+
+/// 功能:移除指定文件的链接(可用于删除文件);
+/// # Arguments
+/// * `dir_fd`: usize, 要删除的链接所在的目录。
+/// * `path`: *const u8, 要删除的链接的名字。如果path是相对路径,则它是相对于dir_fd目录而言的。如果path是相对路径,且dir_fd的值为AT_FDCWD,则它是相对于当前路径而言的。如果path是绝对路径,则dir_fd被忽略。
+/// * `flags`: usize, 可设置为0或AT_REMOVEDIR。
+/// # Return
+/// 成功执行,返回0。失败,返回-1。
+pub fn syscall_unlinkat(dir_fd: isize, path: *const u8, flags: usize) -> isize {
+    const AT_REMOVEDIR: usize = 0x200;
+
+    // 处理路径
+    arceos_posix_api::deal_with_path(dir_fd, Some(path), false)
+        .inspect_err(|e| debug!("unlinkat error: {:?}", e))
+        .and_then(|path| {
+            // 删除链接
+            if flags == AT_REMOVEDIR {
+                // 删除目录
+                axfs::api::remove_dir(path.as_str())
+                    .inspect_err(|e| debug!("rmdir error: {:?}", e))
+                    .map(|_| 0)
+            } else {
+                // 删除文件
+                axfs::api::metadata(path.as_str()).and_then(|metadata| {
+                    if metadata.is_dir() {
+                        Err(AxError::IsADirectory)
+                    } else {
+                        debug!("unlink file: {:?}", path);
+                        arceos_posix_api::HARDLINK_MANAGER
+                            .remove_link(&path)
+                            .ok_or_else(|| {
+                                debug!("unlink file error");
+                                AxError::NotFound
+                            })
+                            .map(|_| 0)
+                    }
+                })
+            }
         })
         .unwrap_or(-1)
 }
