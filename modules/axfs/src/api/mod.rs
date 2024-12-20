@@ -87,3 +87,7 @@ pub fn remove_file(path: &str) -> io::Result<()> {
 pub fn rename(old: &str, new: &str) -> io::Result<()> {
     crate::root::rename(old, new)
 }
+
+pub fn absolute_path_exists(path: &str) -> bool {
+    crate::root::lookup(None, path).is_ok()
+}
