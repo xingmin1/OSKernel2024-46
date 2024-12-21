@@ -55,6 +55,7 @@ fn handle_syscall(tf: &TrapFrame, syscall_num: usize) -> isize {
             tf.arg4() as _,
             tf.arg5() as _,
         ) as _,
+        Sysno::munmap => sys_munmap(tf.arg0() as _, tf.arg1() as _) as _,
         Sysno::ioctl => sys_ioctl(tf.arg0() as _, tf.arg1() as _, tf.arg2() as _) as _,
         Sysno::getcwd => sys_getcwd(tf.arg0() as _, tf.arg1() as _) as _,
         Sysno::chdir => sys_chdir(tf.arg0() as _) as _,
