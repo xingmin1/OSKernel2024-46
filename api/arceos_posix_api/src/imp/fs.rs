@@ -1,4 +1,7 @@
-use alloc::{sync::Arc, string::String};
+use alloc::{
+    string::{String, ToString},
+    sync::Arc,
+};
 use core::ffi::{c_char, c_int};
 
 use axerrno::{LinuxError, LinuxResult};
@@ -7,16 +10,18 @@ use axio::{PollState, SeekFrom};
 use axsync::Mutex;
 
 use super::fd_ops::{get_file_like, FileLike};
-use crate::{ctypes, utils::char_ptr_to_str};
+use crate::{ctypes, utils::char_ptr_to_str, FilePath, AT_FDCWD};
 
 pub struct File {
     inner: Mutex<axfs::fops::File>,
+    path: String,
 }
 
 impl File {
-    fn new(inner: axfs::fops::File) -> Self {
+    fn new(inner: axfs::fops::File, path: String) -> Self {
         Self {
             inner: Mutex::new(inner),
+            path,
         }
     }
 
@@ -29,6 +34,10 @@ impl File {
         f.into_any()
             .downcast::<Self>()
             .map_err(|_| LinuxError::EINVAL)
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
     }
 }
 
@@ -156,8 +165,7 @@ pub fn sys_openat(
 
     let options = flags_to_options(flags, mode);
 
-    const AT_FDCWD: c_int = -100;
-    if filename.starts_with('/') || dirfd == AT_FDCWD {
+    if filename.starts_with('/') || dirfd == AT_FDCWD as _ {
         return sys_open(filename.as_ptr() as _, flags, mode);
     }
 
@@ -192,7 +200,7 @@ where
 {
     open_file(filename, options)
         .map_err(Into::into)
-        .map(File::new)
+        .map(|f| File::new(f, filename.into()))
         .and_then(File::add_to_fd_table)
         .or_else(|e| match e {
             LinuxError::EISDIR => open_dir(filename, options)
@@ -233,7 +241,7 @@ pub unsafe fn sys_stat(path: *const c_char, buf: *mut ctypes::stat) -> c_int {
         let mut options = OpenOptions::new();
         options.read(true);
         let file = axfs::fops::File::open(path?, &options)?;
-        let st = File::new(file).stat()?;
+        let st = File::new(file, path?.to_string()).stat()?;
         unsafe { *buf = st };
         Ok(0)
     })
@@ -249,7 +257,11 @@ pub unsafe fn sys_fstat(fd: c_int, buf: *mut ctypes::stat) -> c_int {
             return Err(LinuxError::EFAULT);
         }
 
-        unsafe { *buf = get_file_like(fd)?.stat()? };
+        let file = get_file_like(fd)?;
+        let mut stat = file.stat()?;
+        let nlinks = FilePath::new(File::from_fd(fd)?.path())?.link_count();
+        stat.st_nlink = nlinks as u32;
+        unsafe { *buf = stat };
         Ok(0)
     })
 }

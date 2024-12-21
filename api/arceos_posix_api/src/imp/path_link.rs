@@ -123,6 +123,10 @@ impl FilePath {
     pub fn components(&self) -> impl Iterator<Item = &str> {
         self.0.trim_matches('/').split('/')
     }
+
+    pub fn link_count(&self) -> usize {
+        HARDLINK_MANAGER.link_count(self)
+    }
 }
 
 impl fmt::Display for FilePath {
@@ -340,7 +344,6 @@ pub fn handle_file_path(
 }
 
 fn handle_empty_path(dir_fd: isize) -> AxResult<String> {
-    const AT_FDCWD: isize = -100;
     if dir_fd == AT_FDCWD {
         return Ok(String::from("."));
     }
