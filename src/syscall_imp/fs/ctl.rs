@@ -1,4 +1,5 @@
 use alloc::string::ToString;
+use arceos_posix_api::AT_FDCWD;
 use axerrno::AxError;
 use axhal::paging::MappingFlags;
 use axtask::{current, TaskExtRef};
@@ -142,8 +143,6 @@ pub(crate) fn sys_chdir(path: *const i8) -> i32 {
 /// * 成功时返回 `0`
 /// * 失败时返回 `-1`
 pub(crate) fn sys_mkdirat(dirfd: i32, path: *const i8, mode: u32) -> i32 {
-    const AT_FDCWD: i32 = -100;
-
     let path = match arceos_posix_api::char_ptr_to_str(path) {
         Ok(path) => path,
         Err(err) => {
@@ -152,7 +151,7 @@ pub(crate) fn sys_mkdirat(dirfd: i32, path: *const i8, mode: u32) -> i32 {
         }
     };
 
-    if !path.starts_with('/') && dirfd != AT_FDCWD {
+    if !path.starts_with('/') && dirfd != AT_FDCWD as i32 {
         warn!("Unsupported dirfd: {dirfd}");
         return -1;
     }
@@ -374,11 +373,11 @@ pub(crate) fn sys_linkat(
     }
 
     // 处理原路径
-    arceos_posix_api::deal_with_path(old_dirfd as isize, Some(old_path), false)
+    arceos_posix_api::handle_file_path(old_dirfd as isize, Some(old_path), false)
         .inspect_err(|err| warn!("Failed to convert old path: {err:?}"))
         .and_then(|old_path| {
             // 处理新路径
-            arceos_posix_api::deal_with_path(new_dirfd as isize, Some(new_path), false)
+            arceos_posix_api::handle_file_path(new_dirfd as isize, Some(new_path), false)
                 .inspect_err(|err| warn!("Failed to convert new path: {err:?}"))
                 .map(|new_path| (old_path, new_path))
         })
@@ -404,7 +403,7 @@ pub fn syscall_unlinkat(dir_fd: isize, path: *const u8, flags: usize) -> isize {
     const AT_REMOVEDIR: usize = 0x200;
 
     // 处理路径
-    arceos_posix_api::deal_with_path(dir_fd, Some(path), false)
+    arceos_posix_api::handle_file_path(dir_fd, Some(path), false)
         .inspect_err(|e| debug!("unlinkat error: {:?}", e))
         .and_then(|path| {
             // 删除链接
@@ -432,4 +431,10 @@ pub fn syscall_unlinkat(dir_fd: isize, path: *const u8, flags: usize) -> isize {
             }
         })
         .unwrap_or(-1)
+}
+
+pub(crate) fn sys_fstat(fd: i32, statbuf: *mut c_void) -> i32 {
+    let statbuf = statbuf as *mut arceos_posix_api::ctypes::stat;
+
+    unsafe { arceos_posix_api::sys_fstat(fd, statbuf) }
 }
