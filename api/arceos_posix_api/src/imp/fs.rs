@@ -39,6 +39,10 @@ impl File {
     pub fn path(&self) -> &str {
         &self.path
     }
+
+    pub fn inner(&self) -> &Mutex<axfs::fops::File> {
+        &self.inner
+    }
 }
 
 impl FileLike for File {
