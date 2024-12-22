@@ -27,6 +27,7 @@ axruntime = { git = "https://github.com/arceos-org/arceos.git", features = ["mul
 arceos_posix_api = { git = "https://github.com/arceos-org/arceos.git", features = ["uspace"] }
 axns = { git = "https://github.com/arceos-org/arceos.git", features = ["thread-local"] }
 axfs = { git = "https://github.com/arceos-org/arceos.git" }
+axfeat = { git = "https://github.com/arceos-org/arceos.git", features = ["bus-mmio"]}
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 x86 = "0.52"

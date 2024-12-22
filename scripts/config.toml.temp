@@ -8,3 +8,4 @@ axtask = { path = "%AX_ROOT%/modules/axtask" }
 axsync = { path = "%AX_ROOT%/modules/axsync" }
 axruntime = { path = "%AX_ROOT%/modules/axruntime" }
 axfs = { path = "%AX_ROOT%/modules/axfs" }
+axfeat = { path = "%AX_ROOT%/api/axfeat" }
