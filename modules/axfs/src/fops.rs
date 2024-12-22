@@ -162,7 +162,7 @@ impl File {
         if attr.is_dir()
             && (opts.create || opts.create_new || opts.write || opts.append || opts.truncate || opts.execute || opts.read)
         {
-            return ax_err!(IsADirectory);
+            return Err(AxError::IsADirectory);
         }
         let access_cap = opts.into();
         if !perm_to_cap(attr.perm()).contains(access_cap) {

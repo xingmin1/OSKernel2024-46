@@ -46,7 +46,7 @@ default-features = false
 features = [ # no std
     "alloc",
     "lfn",
-    "log_level_trace",
+    # "log_level_trace",
     "unicode",
 ]
 
