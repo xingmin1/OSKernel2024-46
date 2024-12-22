@@ -433,9 +433,9 @@ pub fn syscall_unlinkat(dir_fd: isize, path: *const u8, flags: usize) -> isize {
         .unwrap_or(-1)
 }
 
+/// 文件系统信息
 #[derive(Debug, Clone, Copy, Default)]
 #[repr(C)]
-#[cfg(not(target_arch = "x86_64"))]
 pub struct Kstat {
     /// 设备
     pub st_dev: u64,
@@ -444,6 +444,9 @@ pub struct Kstat {
     /// 文件类型
     pub st_mode: u32,
     /// 硬链接数
+    #[cfg(target_arch = "x86_64")]
+    pub st_nlink: u64,
+    #[cfg(not(target_arch = "x86_64"))]
     pub st_nlink: u32,
     /// 用户id
     pub st_uid: u32,
@@ -452,6 +455,9 @@ pub struct Kstat {
     /// 设备号
     pub st_rdev: u64,
     /// padding
+    #[cfg(target_arch = "x86_64")]
+    pub _pad0: u32,
+    #[cfg(not(target_arch = "x86_64"))]
     pub _pad0: u64,
     /// 文件大小
     pub st_size: u64,
