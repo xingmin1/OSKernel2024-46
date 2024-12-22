@@ -7,3 +7,5 @@
 apps/*/build/
 **/target/
 apps/**/Cargo.lock
+sdcard.img
+kernel-qemu

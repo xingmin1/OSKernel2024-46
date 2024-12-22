@@ -1,4 +1,4 @@
-AX_ROOT ?= $(PWD)/.arceos
+AX_ROOT ?= $(PWD)/arceos
 AX_TESTCASE ?= nimbos
 ARCH ?= riscv64
 AX_TESTCASES_LIST=$(shell cat ./apps/$(AX_TESTCASE)/testcase_list | tr '\n' ',')
