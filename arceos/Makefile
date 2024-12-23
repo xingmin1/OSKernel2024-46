@@ -47,7 +47,7 @@ NET ?= n
 GRAPHIC ?= n
 BUS ?= pci
 
-DISK_IMG ?= disk.img
+DISK_IMG ?= ../sdcard.img
 QEMU_LOG ?= n
 NET_DUMP ?= n
 NET_DEV ?= user
