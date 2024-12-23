@@ -103,5 +103,5 @@ typedef struct {{
     }
 
     gen_pthread_mutex("../../ulib/axlibc/include/ax_pthread_mutex.h").unwrap();
-    gen_c_to_rust_bindings("ctypes.h", "src/ctypes_gen.rs");
+    // gen_c_to_rust_bindings("ctypes.h", "src/ctypes_gen.rs");
 }
