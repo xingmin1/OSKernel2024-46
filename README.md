@@ -1,86 +1,91 @@
-# StarryOS
+## 项目简介
 
-[![CI](https://github.com/arceos-org/starry-next/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/arceos-org/starry-next/actions/workflows/ci.yml)
+本项目以 Starry-On-ArceOS 的 [oscomp](https://github.com/Azure-stars/Starry-On-ArceOS/tree/oscomp) 分支 和 Starry 的 [monolithic](https://github.com/Azure-stars/Starry/tree/monolithic)（其为 [arceos](https://github.com/arceos-org/arceos) 的 fork） 为基础，继续将 Unikernel 扩充为宏内核，扩充到支持全部初赛测例。
 
-A monolithic kernel based on [ArceOS](https://github.com/arceos-org/arceos).
+Starry/monolithic 是一个组件化的 Unikernel 基座，Starry-On-ArceOS/oscomp 是对 Starry/monolithic 的宏内核扩展。其中，扩展主要是通过额外的指针字段、Rust 的宏、条件编译等手段实现的。
 
-## Quick Start
+## 参考开源项目
 
-### 1. Install Build Dependencies
+[Starry/main](https://github.com/Azure-stars/Starry/)
 
-Install [cargo-binutils](https://github.com/rust-embedded/cargo-binutils) to use `rust-objcopy` and `rust-objdump` tools:
+## 比赛方向
 
-```bash
-cargo install cargo-binutils
+小型内核实现
+
+## 运行方式
+
+先克隆本项目，然后进入项目目录，执行以下命令：
+
+```shell
+make
+
+qemu-system-riscv64 -machine virt -kernel kernel-qemu -m 128M -nographic -smp 2 -bios default -drive file=sdcard.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0 -device virtio-net-device,netdev=net -netdev user,id=net
 ```
 
-#### Dependencies for C apps
+如遇环境问题，可使用评测镜像：
 
-Install `libclang-dev`:
+```shell
+docker pull docker.educg.net/cg/os-contest:2024p8.3
 
-```bash
-sudo apt install libclang-dev
+# 在项目根目录下执行
+docker run -it -v .:/app docker.educg.net/cg/os-contest:2024p8.3 /bin/bash 
+
+cd /app
 ```
 
-Download & install [musl](https://musl.cc) toolchains:
+然后再运行之前的命令。
 
-```bash
-# download
-wget https://musl.cc/aarch64-linux-musl-cross.tgz
-wget https://musl.cc/riscv64-linux-musl-cross.tgz
-wget https://musl.cc/x86_64-linux-musl-cross.tgz
-# install
-tar zxf aarch64-linux-musl-cross.tgz
-tar zxf riscv64-linux-musl-cross.tgz
-tar zxf x86_64-linux-musl-cross.tgz
-# exec below command in bash OR add below info in ~/.bashrc
-export PATH=`pwd`/x86_64-linux-musl-cross/bin:`pwd`/aarch64-linux-musl-cross/bin:`pwd`/riscv64-linux-musl-cross/bin:$PATH
-```
+## 项目结构
 
-#### Dependencies for running apps
+- 📄 Cargo.lock
+- 📄 Cargo.toml
+- 📄 Makefile
+- 📄 README.md
+- 🗂️ apps - 本次没有用到
+- 🗂️ arceos - Unikernel 基座，fork 自 [Starry/monolithic](https://github.com/Azure-stars/Starry/tree/monolithic)
+  - Cargo.lock
+  - Cargo.toml
+  - Makefile
+  - README.md
+  - api - 与内核空间相关的接口
+    - arceos_posix_api - 一些POSIX API，有些用来实现 Linux 系统调用
+    - axfeat - 统一转发 feature，防止 feature 混乱
+  - doc
+  - modules
+    - axalloc - 全局内存分配器
+    - axconfig - 特定平台编译的常量和参数配置
+    - axdriver - 设备驱动模块
+    - axfs - 文件系统模块
+    - axhal - 硬件抽象层
+    - axlog - 日志模块
+    - axmm - 内存管理模块
+    - axns - 命名空间模块（与linux不同）
+    - axruntime - 运行时库，是应用程序运行的基础环境
+    - axsync - 同步操作模块，提供Mutex等
+    - axtask - 任务调度管理模块
+  - platforms - 不同架构的配置文件（与内核空间相关）
+  - rust-toolchain.toml - Rust 工具链配置文件
+  - scripts
+- 📄 build.rs - 根据构建目标、以及不同架构对用户空间的配置文件，生成Rust可直接使用的文件uspace_config.rs
+- 🗂️ configs - 不同架构对用户空间的配置文件
+- 🗂️ doc
+- 🖼️ kernel-qemu
+- 🖼️ kernel-qemu.elf
+- 🗂️ scripts
+- 💾 sdcard.img
+- 🗂️ src
+  - main.rs - 宏内核扩展入口文件
+  - loader.rs - elf加载器
+  - mm.rs - 内存管理
+  - task.rs - 宏内核下对Unikernel任务的扩展
+  - task - 同上
+  - syscall_imp - 系统调用实现
+- 🗂️ target
+- 🗂️ vendor (项目依赖的外来库们)
+- 🖼️ vfat12.img - 用于通过(u)mount测例的vfat文件系统镜像
 
-```bash
-# for Debian/Ubuntu
-sudo apt-get install qemu-system
-```
+## 文档
 
-```bash
-# for macos
-brew install qemu
-```
+可参考本项目所基于的 Starry/monolithic 下的文档 [arceos/doc](arceos/doc)，以及[简明 ArceOS Tutorial Book](https://rcore-os.cn/arceos-tutorial-book/)。
 
-Notice: The version of `qemu` should **be no less than 8.2.0**.
-
-Other systems, arch and version please refer to [Qemu Download](https://www.qemu.org/download/#linux)
-
-### 2. Build & Run
-
-```bash
-# Clone the base repository
-./scripts/get_deps.sh
-
-# Build user applications
-make user_apps ARCH=<arch> AX_TESTCASE=<testcases>
-
-# Build kernel
-make ARCH=<arch> LOG=<log> AX_TESTCASE=<testcases> build
-
-# Run kernel
-make ARCH=<arch> LOG=<log> AX_TESTCASE=<testcases> run
-```
-
-Where `testcases` are shown under the `apps/` folder.
-
-`<arch>` should be one of `riscv64`, `aarch64`, `x86_64`.
-
-`<log>` should be one of `off`, `error`, `warn`, `info`, `debug`, `trace`.
-
-More arguments and targets can be found in [Makefile](./Makefile).
-
-For example, to run the [nimbos testcases](apps/nimbos/) on `qemu-system-x86_64` with log level `info`:
-
-```bash
-make ARCH=x86_64 LOG=info AX_TESTCASE=nimbos run
-```
-
-Note: Arguments like `NET`, `BLK`, and `GRAPHIC` enable devices in QEMU, which take effect only at runtime, not at build time.
+原项目的 README.md 请查看 [doc/README.md](doc/README.md)。
