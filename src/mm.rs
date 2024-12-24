@@ -1,4 +1,4 @@
-use alloc::string::ToString;
+use alloc::{string::ToString, vec};
 
 use axerrno::AxResult;
 use axhal::{
@@ -60,9 +60,14 @@ pub fn map_elf_sections(
         "Mapping user stack: {:#x?} -> {:#x?}",
         ustack_start, ustack_end
     );
+    let mut args = vec![app_name.to_string()];
+    if ["mount", "umount"].contains(&app_name) {
+        // /vda2 是提前准备好的 FAT12 文件系统镜像
+        args.push("/vda2".to_string());
+    }
     // FIXME: Add more arguments and environment variables
     let (stack_data, ustack_pointer) = kernel_elf_parser::get_app_stack_region(
-        &[app_name.to_string()],
+        &args,
         &[],
         &elf_info.auxv,
         ustack_start,

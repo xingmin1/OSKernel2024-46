@@ -1,7 +1,6 @@
+use alloc::{boxed::Box, string::ToString};
 use arceos_posix_api::AT_FDCWD;
 use axerrno::AxError;
-use alloc::{boxed::Box, string::ToString};
-
 
 // 功能：挂载文件系统；
 // 输入：
@@ -13,12 +12,18 @@ use alloc::{boxed::Box, string::ToString};
 // 返回值：成功返回0，失败返回-1；
 // const char *special, const char *dir, const char *fstype, unsigned long flags, const void *data;
 // int ret = syscall(SYS_mount, special, dir, fstype, flags, data);
-pub(crate) fn sys_mount(special: *const u8, dir: *const u8, fstype: *const u8, _flags: u64, _data: *const u8) -> i64 {
+pub(crate) fn sys_mount(
+    special: *const u8,
+    dir: *const u8,
+    fstype: *const u8,
+    _flags: u64,
+    _data: *const u8,
+) -> i64 {
     let result = (|| {
         // 处理 special 路径
         let special_path = arceos_posix_api::handle_file_path(AT_FDCWD, Some(special), false)
             .inspect_err(|err| log::error!("mount: special: {:?}", err))?;
-        
+
         if special_path.is_dir() {
             log::debug!("mount: special is a directory");
             return Err(AxError::InvalidInput);
@@ -37,8 +42,6 @@ pub(crate) fn sys_mount(special: *const u8, dir: *const u8, fstype: *const u8, _
             return Err(AxError::InvalidInput);
         }
 
-        let special_path = "/mnt/test_mount";
-
         // 执行挂载
         let dir_path_str: &'static str = Box::leak(Box::new(dir_path.to_string()));
         axfs::mount(&special_path, dir_path_str)
@@ -52,7 +55,6 @@ pub(crate) fn sys_mount(special: *const u8, dir: *const u8, fstype: *const u8, _
     }
 }
 
-
 // 功能：卸载文件系统；
 // 输入：指定卸载目录，卸载参数；
 // 返回值：成功返回0，失败返回-1；
@@ -63,16 +65,15 @@ pub(crate) fn sys_umount2(special: *const u8, _flags: i32) -> i64 {
         // 处理 special 路径
         let special_path = arceos_posix_api::handle_file_path(AT_FDCWD, Some(special), false)
             .inspect_err(|err| log::error!("umount2: special: {:?}", err))?;
-        
+
         if special_path.is_dir() {
             log::debug!("umount2: special is a directory");
             return Err(AxError::InvalidInput);
         }
 
         // 执行卸载
-        axfs::umount(&special_path)
-            .inspect_err(|err| log::error!("umount2: {:?}", err))?;
-        
+        axfs::umount(&special_path).inspect_err(|err| log::error!("umount2: {:?}", err))?;
+
         Ok(())
     })();
 

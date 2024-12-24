@@ -21,6 +21,8 @@ use alloc::sync::Arc;
 use axhal::arch::UspaceContext;
 use axsync::Mutex;
 
+static VFAT12_IMG: &'static [u8] = include_bytes!("../vfat12.img");
+
 const JUNIOR: &[&str] = &[
     "brk", "chdir", "clone", "close", "dup2", "dup", "execve", "exit", "fork", "fstat", "getcwd",
     "getdents", "getpid", "getppid", "gettimeofday", "mkdir_", "mmap", "mount", "munmap", "openat",
@@ -35,6 +37,19 @@ fn main() {
     // .split(',')
     // .filter(|&x| !x.is_empty());
 
+    // 为mount和umount测例准备 FAT12 文件系统镜像
+    let _ = axfs::fops::File::open(
+        "/vda2",
+        &axfs::fops::OpenOptions::new()
+            .set_crate(true, true)
+            .set_read(true)
+            .set_write(true),
+    )
+    .inspect_err(|err| debug!("Failed to open /vda2: {:?}", err))
+    .and_then(|mut file| file.write(VFAT12_IMG))
+    .inspect_err(|err| debug!("Failed to write /dev/vda2: {:?}", err));
+
+    // 加载并运行测试用例
     let testcases = JUNIOR;
     for testcase in testcases {
         info!("Running testcase: {}", testcase);
