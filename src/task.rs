@@ -15,8 +15,10 @@ use axtask::{current, AxTaskRef, TaskExtRef, TaskInner, WeakAxTaskRef};
 use bitflags::bitflags;
 use heap::HeapManager;
 use memory_addr::MemoryAddr;
+use time::TimeStat;
 
 mod heap;
+mod time;
 
 /// Task extended data for the monolithic kernel.
 pub struct TaskExt {
@@ -34,6 +36,8 @@ pub struct TaskExt {
     pub aspace: Arc<Mutex<AddrSpace>>,
     /// The heap manager
     pub heap: Arc<Mutex<HeapManager>>,
+    /// The time statistics
+    pub time_stat: Arc<Mutex<TimeStat>>,
     /// The resource namespace
     pub ns: AxNamespace,
     /// Parent
@@ -55,6 +59,7 @@ impl TaskExt {
             clear_child_tid: AtomicU64::new(0),
             aspace,
             heap: Arc::new(Mutex::new(HeapManager::default())),
+            time_stat: Arc::new(Mutex::new(TimeStat::new())),
             ns: AxNamespace::new_thread_local(),
             parent: Some(Arc::downgrade(parent)),
             children: Mutex::new(Vec::new()),
@@ -101,6 +106,16 @@ impl TaskExt {
             .as_ref()
             .and_then(|parent| parent.upgrade())
             .map(|task| task.id().as_u64() as usize)
+    }
+
+    /// 进入用户态时更新时间统计
+    pub fn enter_uspace(&self) {
+        self.time_stat.lock().enter_uspace();
+    }
+
+    /// 进入内核态时更新时间统计
+    pub fn enter_kspace(&self) {
+        self.time_stat.lock().enter_kspace();
     }
 
     pub(crate) fn ns_init_new(&self) {

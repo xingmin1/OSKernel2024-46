@@ -22,11 +22,26 @@ pub static PAGE_FAULT: [fn(VirtAddr, MappingFlags, bool) -> bool];
 #[def_trap_handler]
 pub static SYSCALL: [fn(&TrapFrame, usize) -> isize];
 
+// 先将 uspace feature 当做 monolithic feature 使用
+#[cfg(feature = "uspace")]
+#[def_trap_handler]
+pub static BEFORE_ALL_TRAPS: [fn()];
+
+#[cfg(feature = "uspace")]
+#[def_trap_handler]
+pub static AFTER_ALL_TRAPS: [fn()];
+
 #[allow(unused_macros)]
 macro_rules! handle_trap {
     ($trap:ident, $($args:tt)*) => {{
+        // 目前主要用于统计时间
+        #[cfg(feature = "uspace")]
+        if let Some(func) = $crate::trap::BEFORE_ALL_TRAPS.iter().next() {
+            func();
+        }
+
         let mut iter = $crate::trap::$trap.iter();
-        if let Some(func) = iter.next() {
+        let ret = if let Some(func) = iter.next() {
             if iter.next().is_some() {
                 warn!("Multiple handlers for trap {} are not currently supported", stringify!($trap));
             }
@@ -34,7 +49,15 @@ macro_rules! handle_trap {
         } else {
             warn!("No registered handler for trap {}", stringify!($trap));
             false
+        };
+
+        // 目前主要用于统计时间
+        #[cfg(feature = "uspace")]
+        if let Some(func) = $crate::trap::AFTER_ALL_TRAPS.iter().next() {
+            func();
         }
+
+        ret
     }}
 }
 
