@@ -13,7 +13,10 @@ use axns::{AxNamespace, AxNamespaceIf};
 use axsync::Mutex;
 use axtask::{current, AxTaskRef, TaskExtRef, TaskInner, WeakAxTaskRef};
 use bitflags::bitflags;
+use heap::HeapManager;
 use memory_addr::MemoryAddr;
+
+mod heap;
 
 /// Task extended data for the monolithic kernel.
 pub struct TaskExt {
@@ -29,6 +32,8 @@ pub struct TaskExt {
     pub uctx: UspaceContext,
     /// The virtual memory address space.
     pub aspace: Arc<Mutex<AddrSpace>>,
+    /// The heap manager
+    pub heap: Arc<Mutex<HeapManager>>,
     /// The resource namespace
     pub ns: AxNamespace,
     /// Parent
@@ -49,6 +54,7 @@ impl TaskExt {
             uctx,
             clear_child_tid: AtomicU64::new(0),
             aspace,
+            heap: Arc::new(Mutex::new(HeapManager::default())),
             ns: AxNamespace::new_thread_local(),
             parent: Some(Arc::downgrade(parent)),
             children: Mutex::new(Vec::new()),

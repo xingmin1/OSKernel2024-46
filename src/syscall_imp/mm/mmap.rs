@@ -147,3 +147,13 @@ pub(crate) fn sys_munmap(addr: *mut usize, mut length: usize) -> i32 {
         Ok(0)
     })
 }
+
+pub(crate) fn sys_brk(addr: *const usize) -> isize {
+    current()
+        .task_ext()
+        .heap
+        .lock()
+        .set_heap_top(VirtAddr::from(addr as usize))
+        .map(|top| top.as_usize() as isize)
+        .unwrap_or(-1)
+}
