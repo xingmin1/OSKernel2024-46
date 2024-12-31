@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["clone_task","exec","spawn_user_task","wait_pid"],"mod":["heap","time"],"static":["__AX_TASK_EXT_ALIGN","__AX_TASK_EXT_SIZE"],"struct":["AxNamespaceImpl","TaskExt"]};

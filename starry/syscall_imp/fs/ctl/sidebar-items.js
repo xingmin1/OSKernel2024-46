@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FileType"],"fn":["allocate_user_buffer","sys_chdir","sys_dup","sys_dup3","sys_fstat","sys_getcwd","sys_getdents64","sys_ioctl","sys_linkat","sys_mkdirat","syscall_unlinkat"],"struct":["DirBuffer","DirEnt","Kstat"]};

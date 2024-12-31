@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="项目简介"><title>starry - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b21aa549bf6d91ff.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="starry" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0-nightly (c987ad527 2024-05-01)" data-channel="nightly" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../static.files/storage-e32f0c247825364d.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../starry/index.html">starry</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#modules">Modules</a></li><li><a href="#macros">Macros</a></li><li><a href="#constants">Constants</a></li><li><a href="#statics">Statics</a></li><li><a href="#functions">Functions</a></li></ul></section></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../starry/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">starry</a><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><span class="out-of-band"><a class="src" href="../src/starry/main.rs.html#1-64">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h3 id="项目简介"><a class="doc-anchor" href="#项目简介">§</a>项目简介</h3>
+<p>本项目以 Starry-On-ArceOS 的 <a href="https://github.com/Azure-stars/Starry-On-ArceOS/tree/oscomp">oscomp</a> 分支 和 Starry 的 <a href="https://github.com/Azure-stars/Starry/tree/monolithic">monolithic</a>（其为 <a href="https://github.com/arceos-org/arceos">arceos</a> 的 fork） 为基础，继续将 Unikernel 扩充为宏内核，扩充到支持全部初赛测例。具体修改在<a href="https://gitlab.eduxiji.net/T202410459994713/oskernel2024-46/-/commit/e34716404ba4a75e22a8853ce476b7919dece120">e34716404ba4a75e22a8853ce476b7919dece120</a> 提交及之后。</p>
+<p>Starry/monolithic 是一个组件化的 Unikernel 基座，Starry-On-ArceOS/oscomp 是对 Starry/monolithic 的宏内核扩展。其中，扩展主要是通过额外的指针字段、Rust 的宏、条件编译等手段实现的。</p>
+<h3 id="参考开源项目"><a class="doc-anchor" href="#参考开源项目">§</a>参考开源项目</h3>
+<p><a href="https://github.com/Azure-stars/Starry/">Starry/main</a></p>
+<h3 id="比赛方向"><a class="doc-anchor" href="#比赛方向">§</a>比赛方向</h3>
+<p>小型内核实现</p>
+<h3 id="运行方式"><a class="doc-anchor" href="#运行方式">§</a>运行方式</h3>
+<p>先克隆本项目，然后进入项目目录，执行以下命令：</p>
+<div class="example-wrap"><pre class="language-shell"><code>make
+
+qemu-system-riscv64 -machine virt -kernel kernel-qemu -m 128M -nographic -smp 2 -bios default -drive file=sdcard.img,if=none,format=raw,id=x0  -device virtio-blk-device,drive=x0 -device virtio-net-device,netdev=net -netdev user,id=net
+</code></pre></div>
+<p>如遇环境问题，可使用评测镜像：</p>
+<div class="example-wrap"><pre class="language-shell"><code>docker pull docker.educg.net/cg/os-contest:2024p8.3
+
+# 在项目根目录下执行
+docker run -it -v .:/app docker.educg.net/cg/os-contest:2024p8.3 /bin/bash 
+
+cd /app
+</code></pre></div>
+<p>然后再运行之前的命令。</p>
+<h3 id="项目结构"><a class="doc-anchor" href="#项目结构">§</a>项目结构</h3>
+<ul>
+<li>📄 Cargo.lock</li>
+<li>📄 Cargo.toml</li>
+<li>📄 Makefile</li>
+<li>📄 README.md</li>
+<li>🗂️ arceos - Unikernel 基座，fork 自 <a href="https://github.com/Azure-stars/Starry/tree/monolithic">Starry/monolithic</a>
+<ul>
+<li>📄 Cargo.lock</li>
+<li>📄 Cargo.toml</li>
+<li>📄 Makefile</li>
+<li>📄 README.md</li>
+<li>🗂️ api - 与内核空间相关的接口
+<ul>
+<li>🗂️ arceos_posix_api - 一些POSIX API，有些用来实现 Linux 系统调用</li>
+<li>🗂️ axfeat - 统一转发 feature，防止 feature 混乱</li>
+</ul>
+</li>
+<li>🗂️ doc</li>
+<li>🗂️ modules
+<ul>
+<li>🗂️ axalloc - 全局内存分配器</li>
+<li>🗂️ axconfig - 特定平台编译的常量和参数配置</li>
+<li>🗂️ axdriver - 设备驱动模块</li>
+<li>🗂️ axfs - 文件系统模块</li>
+<li>🗂️ axhal - 硬件抽象层</li>
+<li>🗂️ axlog - 日志模块</li>
+<li>🗂️ axmm - 内存管理模块</li>
+<li>🗂️ axns - 命名空间模块（与linux不同）</li>
+<li>🗂️ axruntime - 运行时库，是应用程序运行的基础环境</li>
+<li>🗂️ axsync - 同步操作模块，提供Mutex等</li>
+<li>🗂️ axtask - 任务调度管理模块</li>
+</ul>
+</li>
+<li>🗂️ platforms - 不同架构的配置文件（与内核空间相关）</li>
+<li>📄 rust-toolchain.toml - Rust 工具链配置文件</li>
+<li>🗂️ scripts</li>
+</ul>
+</li>
+<li>📄 build.rs - 根据构建目标、以及不同架构对用户空间的配置文件，生成Rust可直接使用的文件uspace_config.rs</li>
+<li>🗂️ configs - 不同架构对用户空间的配置文件</li>
+<li>🗂️ doc</li>
+<li>🖼️ kernel-qemu</li>
+<li>🖼️ kernel-qemu.elf</li>
+<li>🗂️ scripts</li>
+<li>💾 sdcard.img</li>
+<li>🗂️ src - Unikernel 的 宏内核扩展
+<ul>
+<li>📄 main.rs - 宏内核扩展入口文件</li>
+<li>📄 loader.rs - elf加载器</li>
+<li>📄 mm.rs - 内存管理</li>
+<li>📄 task.rs - 宏内核下对Unikernel任务的扩展</li>
+<li>🗂️ task - 同上
+<ul>
+<li>📄 heap.rs - 堆内存管理</li>
+<li>📄 time.rs - 时间统计</li>
+</ul>
+</li>
+<li>🗂️ syscall_imp - 系统调用实现
+<ul>
+<li>🗂️ fs - 文件系统相关的系统调用</li>
+<li>🗂️ mm - 内存有关的系统调用</li>
+<li>📄 mod.rs - 中转系统调用</li>
+<li>📄 system_info.rs - 系统信息相关的系统调用</li>
+<li>🗂️ task  - 任务调度相关的系统调用</li>
+<li>📄 time.rs - 时间相关的系统调用</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>🗂️ target</li>
+<li>🗂️ vendor (项目依赖的外来库们)</li>
+<li>🖼️ vfat12.img - 用于通过(u)mount测例的vfat文件系统镜像</li>
+</ul>
+<h3 id="文档"><a class="doc-anchor" href="#文档">§</a>文档</h3>
+<p><a href="doc/main_syscalls_implementation.md">系统调用实现文档</a></p>
+<p>可参考本项目所基于的 Starry/monolithic 下的文档 <a href="arceos/doc">arceos/doc</a>，以及<a href="https://rcore-os.cn/arceos-tutorial-book/">简明 ArceOS Tutorial Book</a>。</p>
+<p>原项目的 README.md 请查看 <a href="doc/README.md">doc/README.md</a>。</p>
+<h3 id="演示视频"><a class="doc-anchor" href="#演示视频">§</a>演示视频</h3>
+<p>链接: <a href="https://pan.baidu.com/s/1gB_cGPAb6wVlU3GKMO5EWA?pwd=mp11">https://pan.baidu.com/s/1gB_cGPAb6wVlU3GKMO5EWA?pwd=mp11</a></p>
+</div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="config/index.html" title="mod starry::config">config</a><span title="Restricted Visibility">&nbsp;🔒</span> </div></li><li><div class="item-name"><a class="mod" href="loader/index.html" title="mod starry::loader">loader</a><span title="Restricted Visibility">&nbsp;🔒</span> </div><div class="desc docblock-short">Loader for loading apps.</div></li><li><div class="item-name"><a class="mod" href="mm/index.html" title="mod starry::mm">mm</a><span title="Restricted Visibility">&nbsp;🔒</span> </div></li><li><div class="item-name"><a class="mod" href="syscall_imp/index.html" title="mod starry::syscall_imp">syscall_imp</a><span title="Restricted Visibility">&nbsp;🔒</span> </div></li><li><div class="item-name"><a class="mod" href="task/index.html" title="mod starry::task">task</a><span title="Restricted Visibility">&nbsp;🔒</span> </div></li></ul><h2 id="macros" class="section-header">Macros<a href="#macros" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="macro" href="macro.syscall_body.html" title="macro starry::syscall_body">syscall_body</a></div><div class="desc docblock-short">Macro to generate syscall body</div></li></ul><h2 id="constants" class="section-header">Constants<a href="#constants" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="constant" href="constant.JUNIOR.html" title="constant starry::JUNIOR">JUNIOR</a><span title="Restricted Visibility">&nbsp;🔒</span> </div></li></ul><h2 id="statics" class="section-header">Statics<a href="#statics" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="static" href="static.VFAT12_IMG.html" title="static starry::VFAT12_IMG">VFAT12_IMG</a><span title="Restricted Visibility">&nbsp;🔒</span> </div></li></ul><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.main.html" title="fn starry::main">main</a><span title="Restricted Visibility">&nbsp;🔒</span> </div></li></ul></section></div></main></body></html>

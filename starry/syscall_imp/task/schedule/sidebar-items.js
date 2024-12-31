@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["sys_clock_nanosleep","sys_nanosleep","sys_sched_yield"]};
